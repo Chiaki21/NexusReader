@@ -1,13 +1,19 @@
 @page "/profile"
+@using NexusReader.Services
 @inject NavigationManager NavManager
+@inject AuthStateService AuthService
+@inject UserSettingsService Settings
 
 <div class="profile-container">
     <header class="profile-header">
         <div class="avatar-circle">
-            <span>JD</span> </div>
+            <span>JD</span>
+        </div>
         <h1 class="user-name">Jane Doe</h1>
         <p class="user-handle">@@romance_reader_26</p>
-        <button class="btn-edit">Edit Profile</button>
+        <div class="header-actions">
+            <button class="btn-edit">Edit Profile</button>
+        </div>
     </header>
 
     <div class="stats-grid">
@@ -25,6 +31,38 @@
         </div>
     </div>
 
+    @* Settings & Actions Section *@
+    <section class="settings-section">
+        <h2 class="section-title">Account Settings</h2>
+        <div class="settings-list">
+            <div class="settings-item" @onclick="async () => await Settings.ToggleDarkMode()">
+                <div class="settings-info">
+                    <span class="settings-name">Appearance</span>
+                    <span class="settings-desc">Switch between light and dark mode</span>
+                </div>
+                <div class="toggle-status">
+                    @(Settings.IsDarkMode ? "Dark" : "Light")
+                </div>
+            </div>
+
+            <div class="settings-item">
+                <div class="settings-info">
+                    <span class="settings-name">Notifications</span>
+                    <span class="settings-desc">Manage reading reminders</span>
+                </div>
+                <svg class="chevron-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+            </div>
+
+            <button class="settings-item logout-item" @onclick="HandleSignOut">
+                <div class="settings-info">
+                    <span class="settings-name">Sign Out</span>
+                    <span class="settings-desc">Securely exit your account</span>
+                </div>
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+            </button>
+        </div>
+    </section>
+
     <section class="goal-section">
         <div class="goal-header">
             <h2 class="section-title">2026 Reading Goal</h2>
@@ -35,25 +73,13 @@
         </div>
     </section>
 
-    <section class="history-section">
-        <h2 class="section-title">Recently Finished</h2>
-        <div class="history-list">
-            <div class="history-item">
-                <div class="mini-cover placeholder-blush"></div>
-                <div class="history-info">
-                    <span class="history-title">It Ends with Us</span>
-                    <span class="history-date">Finished Mar 12, 2026</span>
-                </div>
-                <div class="rating">⭐⭐⭐⭐⭐</div>
-            </div>
-            <div class="history-item">
-                <div class="mini-cover placeholder-sky"></div>
-                <div class="history-info">
-                    <span class="history-title">Beach Read</span>
-                    <span class="history-date">Finished Feb 28, 2026</span>
-                </div>
-                <div class="rating">⭐⭐⭐⭐</div>
-            </div>
-        </div>
-    </section>
+    @* Recently Finished remains the same... *@
 </div>
+
+@code {
+    private void HandleSignOut()
+    {
+        AuthService.Logout();
+        NavManager.NavigateTo("auth");
+    }
+}

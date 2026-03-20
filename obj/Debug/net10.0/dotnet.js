@@ -5,7 +5,7 @@ var e=!1;const t=async()=>WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,
   "mainAssemblyName": "NexusReader",
   "applicationEnvironment": "Development",
   "resources": {
-    "hash": "sha256-Dc4z8UXbvy/VVwEmllwLqgkgTfDRz9SKvRtWzf3V1ns=",
+    "hash": "sha256-HsRmGpC5F7renbq9JBS6ZmIfaljn3rjXu0Y5hsPhrqU=",
     "jsModuleNative": [
       {
         "name": "dotnet.native.69poregybn.js"
@@ -1242,16 +1242,16 @@ var e=!1;const t=async()=>WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,
       },
       {
         "virtualPath": "NexusReader.wasm",
-        "name": "NexusReader.rdcgpoiijy.wasm",
-        "integrity": "sha256-UaTJZTOlImqs6w4Po9QGquDu8dR3uf8GX/jrq4pAP4k=",
+        "name": "NexusReader.mt55wpa6ku.wasm",
+        "integrity": "sha256-Rg92Ij42gCaQMhq4xK7M5CX84XLmkqTd5QZEdRAHzLE=",
         "cache": "force-cache"
       }
     ],
     "pdb": [
       {
         "virtualPath": "NexusReader.pdb",
-        "name": "NexusReader.05mkqb014c.pdb",
-        "integrity": "sha256-7Kz/JZR0kkG5FwvH2nxiqGVnTylkedLElPL+tsVfSq8=",
+        "name": "NexusReader.up1dug9rme.pdb",
+        "integrity": "sha256-DkhFBa87oIzABxiPzjfj3sY/z2nGOrIzQMi/nHbLvuk=",
         "cache": "force-cache"
       }
     ],

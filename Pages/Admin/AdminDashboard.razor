@@ -38,44 +38,43 @@
             <thead>
                 <tr>
                     <th>Cover</th>
-                    <th>Title & Author</th>
-                    <th>Category</th>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                @* FIXED: Now looping through the Service instead of ManagedBooks *@
                 @foreach (var book in BookService.AllBooks)
                 {
                     <tr>
-                        <td>
-                            @if (!string.IsNullOrEmpty(book.CoverImage))
-                            {
-                                <img src="@book.CoverImage" class="mini-cover" alt="Cover" />
-                            }
-                            else
-                            {
-                                <div class="mini-cover placeholder-@book.ColorTheme"></div>
-                            }
-                        </td>
-                        <td>
-                            <div class="book-info">
-                                <span class="book-t">@book.Title</span>
-                                <span class="book-a">@book.Author</span>
+                        <td data-label="Cover">
+                            <div class="mini-cover-preview @book.ColorTheme">
+                                @if (!string.IsNullOrEmpty(book.CoverImage))
+                                {
+                                    <img src="@book.CoverImage" alt="Cover" />
+                                }
                             </div>
                         </td>
-                        <td><span class="category-tag">@book.Category</span></td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="btn-icon edit" title="Edit" @onclick="() => OpenEditBookModal(book)">
-                                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                    </svg>
+                        <td data-label="Title"><strong>@book.Title</strong></td>
+                        <td data-label="Author">@book.Author</td>
+                        <td data-label="Status">
+                            <span class="status-badge @(book.Progress >= 100 ? "completed" : "draft")">
+                                @(book.Progress >= 100 ? "Completed" : "Draft")
+                            </span>
+                        </td>
+                        <td data-label="Actions">
+                            <div class="action-group">
+                                <button class="btn-action edit" @onclick="() => OpenEditBookModal(book)">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    <span>Edit</span>
                                 </button>
-                                <button class="btn-icon delete" title="Delete" @onclick="() => DeleteBook(book.Id)">
-                                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/>
-                                    </svg>
+                                <button class="btn-action write" @onclick='() => NavManager.NavigateTo($"admin/editor/{book.Id}")'>
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 19l9 2-2-9-7 8zM9 3L4 5l2 7h5l3-7z"/></svg>
+                                    <span>Write</span>
+                                </button>
+                                <button class="btn-action delete" @onclick="() => DeleteBook(book.Id)">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 </button>
                             </div>
                         </td>
@@ -91,8 +90,8 @@
     <div class="modal-overlay">
         <div class="modal-card">
             <header class="modal-header">
-                <h3>@(IsEditing ? "Edit Book" : "Add New Book")</h3>
-                <button class="btn-close" @onclick="CloseModal">×</button>
+                 <h3>@(IsEditing ? "Edit Book" : "Add New Book")</h3>
+                 <button class="btn-close" @onclick="CloseModal">×</button>
             </header>
 
             <div class="modal-body">
@@ -107,25 +106,34 @@
                 </div>
 
                 <div class="input-group">
-                    <label>Book Cover Image (Optional)</label>
-                    <div class="file-upload-wrapper">
-                        <InputFile OnChange="HandleFileSelected" class="file-input" id="bookCoverUpload" />
-                        <label for="bookCoverUpload" class="file-label">
-                            @if (string.IsNullOrEmpty(NewBook.CoverImage))
-                            {
-                                <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                </svg>
-                                <span>Upload Image</span>
-                            }
-                            else
-                            {
-                                <img src="@NewBook.CoverImage" class="upload-preview" />
-                                <span>Change Image</span>
-                            }
-                        </label>
-                    </div>
+    <label>Book Cover Image</label>
+    <div class="file-upload-container">
+        @* The actual image preview *@
+        <div class="book-preview-box @NewBook.ColorTheme">
+            @if (!string.IsNullOrEmpty(NewBook.CoverImage))
+            {
+                <img src="@NewBook.CoverImage" class="upload-preview-img" />
+            }
+            else
+            {
+                <div class="placeholder-icon">
+                    <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
                 </div>
+            }
+        </div>
+
+        @* The upload button/input *@
+        <div class="file-upload-controls">
+            <label class="btn-secondary upload-label">
+                <InputFile OnChange="HandleFileSelected" class="hidden-input" />
+                <span>@(string.IsNullOrEmpty(NewBook.CoverImage) ? "Choose Image" : "Change Image")</span>
+            </label>
+            <p class="upload-hint">Recommended: 300x450px (PNG/JPG)</p>
+        </div>
+    </div>
+</div>
 
                 <div class="input-row">
                     <div class="input-group">
@@ -154,10 +162,10 @@
            <footer class="modal-footer">
     @if (IsEditing)
     {
-        <button class="btn-secondary" style="margin-right: auto;" 
-        @onclick='() => NavManager.NavigateTo($"admin/editor/{NewBook.Id}")'>
-    🖋️ Write Content
-</button>
+        <button class="btn-action write" style="margin-right: auto;" 
+                @onclick='() => NavManager.NavigateTo($"admin/editor/{NewBook.Id}")'>
+            🖋️ Write Content
+        </button>
     }
     <button class="btn-secondary" @onclick="CloseModal">Cancel</button>
     <button class="btn-primary" @onclick="SaveBook">Save Changes</button>
@@ -181,7 +189,7 @@
     private void OpenEditBookModal(BookModel book)
     {
         IsEditing = true;
-        // Clone the book so we don't edit the live list until Save is clicked
+        // Clone the book to avoid modifying the list directly until 'Save' is clicked
         NewBook = new BookModel 
         { 
             Id = book.Id,
@@ -198,18 +206,22 @@
 
     private void CloseModal() => ShowModal = false;
 
-    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+   private async Task HandleFileSelected(InputFileChangeEventArgs e)
+{
+    var file = e.File;
+    if (file != null)
     {
-        var file = e.File;
-        if (file != null)
-        {
-            var format = "image/png";
-            var resizedImage = await file.RequestImageFileAsync(format, 300, 450);
-            var buffer = new byte[resizedImage.Size];
-            await resizedImage.OpenReadStream().ReadAsync(buffer);
-            NewBook.CoverImage = $"data:{format};base64,{Convert.ToBase64String(buffer)}";
-        }
+        var format = "image/png";
+        var resizedImage = await file.RequestImageFileAsync(format, 300, 450);
+        var buffer = new byte[resizedImage.Size];
+        
+        // Use a using statement and read fully
+        using var stream = resizedImage.OpenReadStream();
+        await stream.ReadAsync(buffer, 0, (int)resizedImage.Size); 
+        
+        NewBook.CoverImage = $"data:{format};base64,{Convert.ToBase64String(buffer)}";
     }
+}
 
     private void SaveBook()
     {
