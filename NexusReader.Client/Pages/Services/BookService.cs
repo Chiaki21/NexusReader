@@ -1,4 +1,4 @@
-using NexusReader.Models;
+using NexusReader.Shared.Models;
 
 namespace NexusReader.Services
 {

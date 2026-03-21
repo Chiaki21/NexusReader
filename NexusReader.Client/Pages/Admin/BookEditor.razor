@@ -1,5 +1,5 @@
 @page "/admin/editor/{BookId:int}"
-@using NexusReader.Models
+@using NexusReader.Shared.Models
 @using NexusReader.Services
 @inject BookService BookService
 @inject NavigationManager NavManager
@@ -26,24 +26,44 @@
 
                 @* --- MOBILE DROPDOWN MENU --- *@
                 @if (isMobileMenuOpen)
-                {
-                    <div class="mobile-chapter-menu">
-                        <div class="menu-header">Select Chapter</div>
-                        @foreach (var ch in Chapters.OrderBy(c => c.Order))
-                        {
-                            <button class="mobile-menu-item @(ActiveChapter == ch ? "active" : "")" 
-                                    @onclick="() => SwitchChapterMobile(ch)">
-                                <span class="ch-num">@ch.Order.</span>
-                                <span class="ch-name">@ch.Title</span>
-                            </button>
-                        }
-                        <button class="btn-add-chapter-mobile" @onclick="AddNewChapterMobile">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                            Add New Chapter
+{
+    <div class="mobile-chapter-menu">
+        <div class="menu-header">Manage Chapters</div>
+        @foreach (var ch in Chapters.OrderBy(c => c.Order))
+        {
+            <div class="mobile-menu-row @(ActiveChapter == ch ? "active" : "")">
+                <button class="mobile-menu-item" @onclick="() => SwitchChapterMobile(ch)">
+                    <span class="ch-num">@ch.Order.</span>
+                    <span class="ch-name">@ch.Title</span>
+                </button>
+
+                <div class="mobile-actions">
+                    @* REORDER *@
+                    <div class="reorder-group-mobile">
+                        <button class="btn-icon-xs" disabled="@(ch.Order == 1)" 
+                                @onclick="() => MoveChapter(ch, -1)" @onclick:stopPropagation="true">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
+                        </button>
+                        <button class="btn-icon-xs" disabled="@(ch.Order == Chapters.Count)" 
+                                @onclick="() => MoveChapter(ch, 1)" @onclick:stopPropagation="true">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
                         </button>
                     </div>
-                    <div class="menu-overlay" @onclick="ToggleMobileMenu"></div>
-                }
+
+                    @* DELETE *@
+                    <button class="btn-icon-sm delete" @onclick="() => ConfirmDelete(ch)" @onclick:stopPropagation="true">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                </div>
+            </div>
+        }
+        <button class="btn-add-chapter-mobile" @onclick="AddNewChapterMobile">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            Add New Chapter
+        </button>
+    </div>
+    <div class="menu-overlay" @onclick="ToggleMobileMenu"></div>
+}
             </div>
 
             <div class="header-right">

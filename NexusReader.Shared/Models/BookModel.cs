@@ -1,8 +1,14 @@
-namespace NexusReader.Models
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace NexusReader.Shared.Models
 {
+    [Table("Books")] // Tells EF this class maps to the "Books" table in SQL
     public class BookModel
     {
+        [Key] // Explicitly marks this as the Primary Key
         public int Id { get; set; }
+        
         public string Title { get; set; } = "";
         public string Author { get; set; } = "";
         public string Category { get; set; } = "Romance";
@@ -11,13 +17,19 @@ namespace NexusReader.Models
         public string? CoverImage { get; set; }
         public int Progress { get; set; }
         
-        // Use this to store all writing data
+        
         public List<ChapterModel> Chapters { get; set; } = new();
     }
 
+    [Table("Chapters")]
     public class ChapterModel
     {
+        [Key]
         public int Id { get; set; }
+        
+        // --- ADD THIS LINE ---
+        public int BookModelId { get; set; } 
+        
         public string Title { get; set; } = "";
         public string Content { get; set; } = "";
     }

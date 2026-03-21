@@ -1,3 +1,4 @@
+@using NexusReader.Shared.Models
 @page "/search"
 @inject NavigationManager NavManager
 
@@ -64,10 +65,4 @@
                     b.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) || 
                     b.Author.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
 
-    public class BookModel
-    {
-        public string Title { get; set; } = "";
-        public string Author { get; set; } = "";
-        public string ColorTheme { get; set; } = "slate";
-    }
 }

@@ -1,5 +1,6 @@
 @page "/favorites"
 @inject NavigationManager NavManager
+@inject BookService BookService
 
 <div class="favorites-container">
     <header class="favorites-header">
@@ -37,22 +38,7 @@
 </div>
 
 @code {
-    // In a real app, this list would be managed by a shared Service
-    private List<BookModel> AllBooks = new()
-    {
-        new BookModel { Title = "It Ends with Us", Author = "Colleen Hoover", ColorTheme = "blush", IsFavorite = true },
-        new BookModel { Title = "The Love Hypothesis", Author = "Ali Hazelwood", ColorTheme = "blush", IsFavorite = true },
-        new BookModel { Title = "Book Lovers", Author = "Emily Henry", ColorTheme = "peach", IsFavorite = false },
-        new BookModel { Title = "Pride and Prejudice", Author = "Jane Austen", ColorTheme = "slate", IsFavorite = true }
-    };
-
-    private IEnumerable<BookModel> FavoriteBooks => AllBooks.Where(b => b.IsFavorite);
-
-    public class BookModel
-    {
-        public string Title { get; set; } = "";
-        public string Author { get; set; } = "";
-        public string ColorTheme { get; set; } = "slate";
-        public bool IsFavorite { get; set; }
-    }
+    // This should be replaced with actual favorite logic from the BookService.
+    // For now, we'll display the first two books from the service as placeholders.
+    private IEnumerable<BookModel> FavoriteBooks => BookService.AllBooks.Take(2);
 }

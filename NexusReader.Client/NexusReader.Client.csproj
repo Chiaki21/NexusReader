@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>NexusReader</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
@@ -15,6 +16,10 @@
 
   <ItemGroup>
     <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NexusReader.Shared\NexusReader.Shared.csproj" />
   </ItemGroup>
 
 </Project>
