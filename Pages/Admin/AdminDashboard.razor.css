@@ -5,13 +5,63 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.6); /* Dim the background */
-  backdrop-filter: blur(4px); /* Modern glass effect */
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999; /* High z-index is critical */
-  padding: 1rem;
+  z-index: 2000;
+  animation: fadeIn 0.2s ease;
+}
+
+.confirm-modal {
+  background: var(--bg-panel);
+  padding: 2.5rem;
+  border-radius: 1.5rem;
+  max-width: 440px;
+  width: 90%;
+  text-align: center;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.modal-icon.danger {
+  margin-bottom: 1.5rem;
+  display: inline-flex;
+  padding: 1.25rem;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 50%;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.btn-danger {
+  flex: 1;
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.8rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
+}
+
+.modal-icon.danger {
+  margin-bottom: 1.5rem;
+  display: inline-flex;
+  padding: 1.25rem;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 50%;
 }
 
 .modal-card {
@@ -393,8 +443,71 @@
   border-color: var(--accent-primary);
 }
 
+/* --- CATEGORY TAG STYLING --- */
+.category-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.05); /* Subtle subtle background */
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* --- SEARCH FILTERING --- */
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 0.8rem;
+  padding: 0 1rem;
+  min-width: 320px;
+}
+
+.search-wrapper input {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  padding: 0.75rem 0.5rem;
+  width: 100%;
+  outline: none;
+}
+
+.btn-clear-search {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 5px;
+}
+
+.no-results {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary);
+}
+
 /* --- THE MOBILE RESPONSIVE OVERHAUL --- */
 @media (max-width: 768px) {
+  .header-content {
+    gap: 1rem;
+  }
+  .search-wrapper {
+    min-width: 100%;
+    order: 2;
+  }
   /* Header & Stats Adjustments */
   .admin-header {
     flex-direction: column;
@@ -469,6 +582,24 @@
     font-weight: 700;
     color: var(--text-secondary);
     font-size: 0.8rem;
+  }
+
+  /* Ensure Category row aligns like the others */
+  .admin-table td[data-label="Category"] {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  /* Make the tag look a bit more "pill-like" on mobile */
+  .category-tag {
+    background: var(--bg-main);
+    border-radius: 99px;
+    padding: 2px 10px;
+    color: var(--accent-primary); /* Give it some color on mobile */
+    border-color: rgba(99, 102, 241, 0.2);
   }
 
   /* --- ACTIONS ROW (The Card Footer) --- */

@@ -12,15 +12,43 @@
                 <button class="btn-back-circle" @onclick='() => NavManager.NavigateTo("admin/dashboard")'>
                     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
                 </button>
-                <div class="header-meta">
-                    <h1>@CurrentBook.Title</h1>
-                    <span class="status-badge">@ActiveChapter?.Title</span>
+                
+                @* --- MOBILE CHAPTER DROPDOWN TRIGGER --- *@
+                <div class="header-meta" @onclick="ToggleMobileMenu">
+                    <div class="mobile-selector">
+                        <h1>@ActiveChapter?.Title</h1>
+                        <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <path d="M6 9l6 6 6-6"/>
+                        </svg>
+                    </div>
+                    <span class="status-badge">Chapter @ActiveChapter?.Order</span>
                 </div>
+
+                @* --- MOBILE DROPDOWN MENU --- *@
+                @if (isMobileMenuOpen)
+                {
+                    <div class="mobile-chapter-menu">
+                        <div class="menu-header">Select Chapter</div>
+                        @foreach (var ch in Chapters.OrderBy(c => c.Order))
+                        {
+                            <button class="mobile-menu-item @(ActiveChapter == ch ? "active" : "")" 
+                                    @onclick="() => SwitchChapterMobile(ch)">
+                                <span class="ch-num">@ch.Order.</span>
+                                <span class="ch-name">@ch.Title</span>
+                            </button>
+                        }
+                        <button class="btn-add-chapter-mobile" @onclick="AddNewChapterMobile">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                            Add New Chapter
+                        </button>
+                    </div>
+                    <div class="menu-overlay" @onclick="ToggleMobileMenu"></div>
+                }
             </div>
 
             <div class="header-right">
                 <span class="save-indicator @(IsSaving ? "saving" : "")">
-                    @(IsSaving ? "Saving..." : "All changes saved")
+                    @(IsSaving ? "Saving..." : "Saved")
                 </span>
                 <button class="btn-primary action-save" @onclick="SaveCurrentChapter" disabled="@IsSaving">
                     Save Draft
@@ -29,67 +57,67 @@
         </header>
 
         <div class="editor-layout">
+            @* Sidebar only visible on desktop via CSS *@
             <aside class="editor-sidebar">
-    <div class="sidebar-header">
-        <h3>Chapters</h3>
-        <span class="ch-count">@Chapters.Count Chapters</span>
-    </div>
-    <nav class="chapter-list">
-    @foreach (var chapter in Chapters.OrderBy(c => c.Order))
-    {
-        <div class="chapter-wrapper @(ActiveChapter == chapter ? "active" : "")">
-            <button class="chapter-item" @onclick="() => SwitchChapter(chapter)">
-                <span class="ch-num">@chapter.Order</span>
-                <span class="ch-name">@chapter.Title</span>
-            </button>
-            
-            <div class="chapter-actions">
-                @* REORDER CONTROLS *@
-                <div class="reorder-group">
-                    <button class="btn-icon-xs" title="Move Up" 
-                            disabled="@(chapter.Order == 1)"
-                            @onclick="() => MoveChapter(chapter, -1)" @onclick:stopPropagation="true">
-                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
-                    </button>
-                    <button class="btn-icon-xs" title="Move Down" 
-                            disabled="@(chapter.Order == Chapters.Count)"
-                            @onclick="() => MoveChapter(chapter, 1)" @onclick:stopPropagation="true">
-                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-                    </button>
+                <div class="sidebar-header">
+                    <h3>Chapters</h3>
+                    <span class="ch-count">@Chapters.Count Chapters</span>
                 </div>
+                <nav class="chapter-list">
+                @foreach (var chapter in Chapters.OrderBy(c => c.Order))
+                {
+                    <div class="chapter-wrapper @(ActiveChapter == chapter ? "active" : "")">
+                        <button class="chapter-item" @onclick="() => SwitchChapter(chapter)">
+                            <span class="ch-num">@chapter.Order</span>
+                            <span class="ch-name">@chapter.Title</span>
+                        </button>
+                        
+                        <div class="chapter-actions">
+                            <div class="reorder-group">
+                                <button class="btn-icon-xs" title="Move Up" 
+                                        disabled="@(chapter.Order == 1)"
+                                        @onclick="() => MoveChapter(chapter, -1)" @onclick:stopPropagation="true">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
+                                </button>
+                                <button class="btn-icon-xs" title="Move Down" 
+                                        disabled="@(chapter.Order == Chapters.Count)"
+                                        @onclick="() => MoveChapter(chapter, 1)" @onclick:stopPropagation="true">
+                                    <svg width="6" height="6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                                </button>
+                            </div>
 
-                <button class="btn-icon-sm delete" title="Delete" 
-                        @onclick="() => ConfirmDelete(chapter)" @onclick:stopPropagation="true">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                </button>
-            </div>
-        </div>
-    }
-        <button class="btn-add-chapter" @onclick="AddNewChapter">
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-            Add Chapter
-        </button>
-    </nav>
-</aside>
+                            <button class="btn-icon-sm delete" title="Delete" 
+                                    @onclick="() => ConfirmDelete(chapter)" @onclick:stopPropagation="true">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                }
+                    <button class="btn-add-chapter" @onclick="AddNewChapter">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                        Add Chapter
+                    </button>
+                </nav>
+            </aside>
 
-<main class="editor-main">
-    <div class="writing-paper">
-        @if (ActiveChapter != null)
-        {
-            <input class="title-field" @bind="ActiveChapter.Title" @bind:event="oninput" placeholder="Untitled Chapter" />
-            <textarea class="content-field" @bind="ActiveChapter.Content" @bind:event="oninput" placeholder="Start your story..."></textarea>
-            
-            <footer class="paper-footer">
-                <div class="stat-item">
-                    <strong>@GetWordCount()</strong> words
+            <main class="editor-main">
+                <div class="writing-paper">
+                    @if (ActiveChapter != null)
+                    {
+                        <input class="title-field" @bind="ActiveChapter.Title" @bind:event="oninput" placeholder="Untitled Chapter" />
+                        <textarea class="content-field" @bind="ActiveChapter.Content" @bind:event="oninput" placeholder="Start your story..."></textarea>
+                        
+                        <footer class="paper-footer">
+                            <div class="stat-item">
+                                <strong>@GetWordCount()</strong> words
+                            </div>
+                            <div class="stat-item">
+                                <strong>@GetReadTime()</strong> min read
+                            </div>
+                        </footer>
+                    }
                 </div>
-                <div class="stat-item">
-                    <strong>@GetReadTime()</strong> min read
-                </div>
-            </footer>
-        }
-    </div>
-</main>
+            </main>
         </div>
     }
 
@@ -118,8 +146,11 @@
     
     private List<ChapterModel> Chapters = new();
     private ChapterModel? ActiveChapter;
-    private ChapterModel? ChapterToDelete; // Tracks which chapter is queued for deletion
+    private ChapterModel? ChapterToDelete; 
     private bool IsSaving = false;
+
+    // --- NEW STATE FOR MOBILE NAVIGATION ---
+    private bool isMobileMenuOpen = false;
 
     protected override void OnInitialized()
     {
@@ -140,12 +171,29 @@
         ActiveChapter = Chapters.First();
     }
 
+    // --- MOBILE SPECIFIC LOGIC ---
+    private void ToggleMobileMenu() => isMobileMenuOpen = !isMobileMenuOpen;
+
+    private async Task SwitchChapterMobile(ChapterModel chapter)
+    {
+        isMobileMenuOpen = false; // Close the dropdown
+        await SwitchChapter(chapter);
+    }
+
+    private void AddNewChapterMobile()
+    {
+        isMobileMenuOpen = false; // Close the dropdown
+        AddNewChapter();
+    }
+
+    // --- CORE LOGIC ---
     private async Task SwitchChapter(ChapterModel selectedChapter)
     {
         if (ActiveChapter == selectedChapter) return;
 
         await SaveCurrentChapter();
         ActiveChapter = selectedChapter;
+        StateHasChanged();
     }
 
     private void MoveChapter(ChapterModel chapter, int direction)
@@ -160,7 +208,6 @@
             targetChapter.Order = currentPos;
             chapter.Order = targetPos;
             
-            // Re-sorting the list instance to ensure the UI renders correctly
             Chapters = Chapters.OrderBy(c => c.Order).ToList();
             StateHasChanged();
         }
@@ -183,7 +230,7 @@
         if (ActiveChapter == null) return;
         
         IsSaving = true;
-        await Task.Delay(400); // Simulate network latency
+        await Task.Delay(400); 
         
         // TODO: BookService.UpdateChapter(ActiveChapter);
         
@@ -191,18 +238,8 @@
     }
 
     /* --- DELETE MODAL LOGIC --- */
-
-    private void ConfirmDelete(ChapterModel chapter)
-    {
-        // Opens the modal by setting the reference
-        ChapterToDelete = chapter;
-    }
-
-    private void CancelDelete()
-    {
-        // Closes the modal by clearing the reference
-        ChapterToDelete = null;
-    }
+    private void ConfirmDelete(ChapterModel chapter) => ChapterToDelete = chapter;
+    private void CancelDelete() => ChapterToDelete = null;
 
     private void ExecuteDelete()
     {
@@ -210,14 +247,12 @@
         {
             Chapters.Remove(ChapterToDelete);
             
-            // Re-normalize orders so there are no gaps (1, 2, 4 becomes 1, 2, 3)
             var sorted = Chapters.OrderBy(c => c.Order).ToList();
             for (int i = 0; i < sorted.Count; i++)
             {
                 sorted[i].Order = i + 1;
             }
 
-            // If we deleted the chapter we were currently looking at, switch to another one
             if (ActiveChapter == ChapterToDelete)
             {
                 ActiveChapter = Chapters.OrderBy(c => c.Order).FirstOrDefault();
@@ -229,7 +264,6 @@
     }
 
     /* --- STATS LOGIC --- */
-
     private string GetWordCount() 
     {
         if (string.IsNullOrWhiteSpace(ActiveChapter?.Content)) return "0";

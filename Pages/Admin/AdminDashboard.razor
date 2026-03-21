@@ -6,10 +6,28 @@
 
 <div class="admin-container">
     <header class="admin-header">
-        <div>
-            <h1 class="title">Library Management</h1>
-            <p class="subtitle">Add, edit, or remove books from the catalog</p>
+        <div class="header-content">
+            <div>
+                <h1 class="title">Library Management</h1>
+                <p class="subtitle">Add, edit, or remove books from the catalog</p>
+            </div>
+
+            @* --- NEW SEARCH BAR --- *@
+            <div class="search-wrapper">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input type="text" 
+                       placeholder="Search by title, author, or category..." 
+                       @bind="SearchTerm" 
+                       @bind:event="oninput" />
+                @if (!string.IsNullOrEmpty(SearchTerm))
+                {
+                    <button class="btn-clear-search" @onclick='() => SearchTerm = ""'>&times;</button>
+                }
+            </div>
         </div>
+
         <button class="btn-primary" @onclick="OpenAddBookModal">
             <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path d="M12 4v16m8-8H4"/>
@@ -40,12 +58,14 @@
                     <th>Cover</th>
                     <th>Title</th>
                     <th>Author</th>
+                    <th>Category</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var book in BookService.AllBooks)
+                @* --- SWITCHED TO FILTEREDBOOKS --- *@
+                @foreach (var book in FilteredBooks)
                 {
                     <tr>
                         <td data-label="Cover">
@@ -58,6 +78,9 @@
                         </td>
                         <td data-label="Title"><strong>@book.Title</strong></td>
                         <td data-label="Author">@book.Author</td>
+                        <td data-label="Category">
+                            <span class="category-tag">@book.Category</span>
+                        </td>
                         <td data-label="Status">
                             <span class="status-badge @(book.Progress >= 100 ? "completed" : "draft")">
                                 @(book.Progress >= 100 ? "Completed" : "Draft")
@@ -73,15 +96,24 @@
                                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 19l9 2-2-9-7 8zM9 3L4 5l2 7h5l3-7z"/></svg>
                                     <span>Write</span>
                                 </button>
-                                <button class="btn-action delete" @onclick="() => DeleteBook(book.Id)">
-                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                </button>
+                                <button class="btn-action delete" @onclick="() => ConfirmDelete(book)">
+    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+    </svg>
+</button>
                             </div>
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
+
+        @if (!FilteredBooks.Any())
+        {
+            <div class="no-results">
+                <p>No books found matching "@SearchTerm"</p>
+            </div>
+        }
     </div>
 </div>
 
@@ -174,10 +206,41 @@
     </div>
 }
 
+@if (ShowDeleteModal)
+{
+    <div class="modal-overlay">
+        <div class="confirm-modal">
+            <div class="modal-icon danger">
+                <svg width="40" height="40" fill="none" stroke="#ef4444" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <h3>Delete Book?</h3>
+            <p>Are you sure you want to delete <strong>"@BookToDelete?.Title"</strong>? This action cannot be undone.</p>
+            
+            <div class="modal-actions">
+                <button class="btn-secondary" @onclick="CancelDelete">Cancel</button>
+                <button class="btn-danger" @onclick="ExecuteDelete">Delete Permanently</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private bool ShowModal = false;
+    private bool ShowDeleteModal = false; // NEW
     private bool IsEditing = false;
     private BookModel NewBook = new();
+    private BookModel? BookToDelete; // NEW
+    private string SearchTerm { get; set; } = "";
+
+    private IEnumerable<BookModel> FilteredBooks => 
+        string.IsNullOrWhiteSpace(SearchTerm) 
+            ? BookService.AllBooks 
+            : BookService.AllBooks.Where(b => 
+                b.Title.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) || 
+                b.Author.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                b.Category.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
 
     private void OpenAddBookModal() 
     {
@@ -189,7 +252,6 @@
     private void OpenEditBookModal(BookModel book)
     {
         IsEditing = true;
-        // Clone the book to avoid modifying the list directly until 'Save' is clicked
         NewBook = new BookModel 
         { 
             Id = book.Id,
@@ -206,22 +268,47 @@
 
     private void CloseModal() => ShowModal = false;
 
-   private async Task HandleFileSelected(InputFileChangeEventArgs e)
-{
-    var file = e.File;
-    if (file != null)
+    // --- NEW DELETE MODAL LOGIC ---
+    private void ConfirmDelete(BookModel book)
     {
-        var format = "image/png";
-        var resizedImage = await file.RequestImageFileAsync(format, 300, 450);
-        var buffer = new byte[resizedImage.Size];
-        
-        // Use a using statement and read fully
-        using var stream = resizedImage.OpenReadStream();
-        await stream.ReadAsync(buffer, 0, (int)resizedImage.Size); 
-        
-        NewBook.CoverImage = $"data:{format};base64,{Convert.ToBase64String(buffer)}";
+        BookToDelete = book;
+        ShowDeleteModal = true;
     }
-}
+
+    private void CancelDelete()
+    {
+        BookToDelete = null;
+        ShowDeleteModal = false;
+    }
+
+    private void ExecuteDelete()
+    {
+        if (BookToDelete != null)
+        {
+            var book = BookService.AllBooks.FirstOrDefault(b => b.Id == BookToDelete.Id);
+            if (book != null)
+            {
+                BookService.AllBooks.Remove(book);
+            }
+            CancelDelete(); // Resets variables and closes modal
+        }
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            var format = "image/png";
+            var resizedImage = await file.RequestImageFileAsync(format, 300, 450);
+            var buffer = new byte[resizedImage.Size];
+            
+            using var stream = resizedImage.OpenReadStream();
+            await stream.ReadAsync(buffer, 0, (int)resizedImage.Size); 
+            
+            NewBook.CoverImage = $"data:{format};base64,{Convert.ToBase64String(buffer)}";
+        }
+    }
 
     private void SaveBook()
     {
@@ -240,14 +327,5 @@
         }
 
         ShowModal = false;
-    }
-
-    private void DeleteBook(int id)
-    {
-        var book = BookService.AllBooks.FirstOrDefault(b => b.Id == id);
-        if (book != null)
-        {
-            BookService.AllBooks.Remove(book);
-        }
     }
 }
