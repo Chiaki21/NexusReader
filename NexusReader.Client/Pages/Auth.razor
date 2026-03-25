@@ -1,12 +1,13 @@
 @page "/auth"
+@using NexusReader.Services
+@using NexusReader.Shared.Models
 @inject NavigationManager NavManager
 @inject AuthStateService AuthState
+
 <div class="auth-wrapper">
     <div class="auth-visual">
         <div class="visual-content">
-            @* We use a simpler, cleaner graphic that fits the romance vibe *@
             <svg class="visual-graphic" viewBox="0 0 400 300" fill="none">
-                @* Placeholder for a stylized, looping rose or book outline *@
                 <path d="M200,50 Q250,100 200,150 Q150,200 200,250" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 <path d="M180,70 L220,130 M220,70 L180,130" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
@@ -24,77 +25,83 @@
                     </svg>
                 </div>
                 <h1 class="auth-title">@(IsLoginMode ? "Sign in to NexusReader" : "Create your account")</h1>
-                @if (!IsLoginMode)
+                @if (!string.IsNullOrEmpty(errorMessage))
                 {
-                    <p class="auth-subtitle">Join thousands of readers and start your journey.</p>
+                    <p class="error-text" style="color: #ff4d4d; font-size: 0.85rem; margin-top: 10px;">@errorMessage</p>
                 }
             </header>
 
-            <form @onsubmit="HandleAuth" class="auth-form">
-            @if (!IsLoginMode)
-            {
-                <div class="input-row">
-                    <div class="input-group">
-                        <label>First Name</label>
-                        <input type="text" placeholder="Jane" required />
+            <EditForm Model="this" OnValidSubmit="HandleAuth" class="auth-form">
+                @if (!IsLoginMode)
+                {
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label>First Name</label>
+                            <input type="text" placeholder="Jane" @bind="firstName" />
+                        </div>
+                        <div class="input-group">
+                            <label>Last Name</label>
+                            <input type="text" placeholder="Doe" @bind="lastName" />
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <label>Last Name</label>
-                        <input type="text" placeholder="Doe" required />
-                    </div>
-                </div>
-            }
+                }
 
-            <div class="input-group">
-                <label>Email Address</label>
-                <input type="email" placeholder="name@example.com" required />
-            </div>
-
-            <div class="input-group">
-                <label>Password</label>
-                <input type="password" placeholder="••••••••" required />
-            </div>
-
-            @if (!IsLoginMode)
-            {
                 <div class="input-group">
-                    <label>Confirm Password</label>
-                    <input type="password" placeholder="••••••••" required />
+                    <label>Email Address</label>
+                    <input type="email" placeholder="name@example.com" @bind="email" required />
                 </div>
 
-                <div class="age-verification">
-                    <label>Are you over 18 years old?</label>
-                    <div class="radio-group">
-                        <label class="radio-option">
-                            <input type="radio" name="age" value="yes" required />
-                            <span>Yes</span>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="age" value="no" />
-                            <span>No</span>
-                        </label>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" placeholder="••••••••" @bind="password" required />
+                </div>
+
+                @if (!IsLoginMode)
+                {
+                    <div class="input-group">
+                        <label>Confirm Password</label>
+                        <input type="password" placeholder="••••••••" @bind="confirmPassword" required />
                     </div>
-                </div>
-            }
-            
-            @if (IsLoginMode)
-            {
-                <button type="button" class="btn-link forgot-password">Forgot Password?</button>
-            }
 
-            <button type="submit" class="btn-primary auth-submit">
-                @(IsLoginMode ? "Sign In" : "Sign Up")
-            </button>
-        </form>
+                    <div class="age-verification">
+                        <label>Are you over 18 years old?</label>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="age" value="yes" required />
+                                <span>Yes</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="age" value="no" />
+                                <span>No</span>
+                            </label>
+                        </div>
+                    </div>
+                }
+                
+                @if (IsLoginMode)
+                {
+                    <button type="button" class="btn-link forgot-password">Forgot Password?</button>
+                }
+
+                <button type="submit" class="btn-primary auth-submit" disabled="@isSubmitting">
+                    @if (isSubmitting)
+                    {
+                        <span>Processing...</span>
+                    }
+                    else
+                    {
+                        @(IsLoginMode ? "Sign In" : "Sign Up")
+                    }
+                </button>
+            </EditForm>
 
             <div class="auth-footer">
-                <button class="btn-secondary" @onclick="() => IsLoginMode = !IsLoginMode">
+                <button class="btn-secondary" @onclick="ToggleMode">
                     @(IsLoginMode ? "Don't have an account? Sign Up" : "Already have an account? Sign In")
                 </button>
                 
                 <hr class="divider" />
                 
-                @* Dev Shortcut *@
                 <button type="button" class="btn-admin-shortcut" @onclick="LoginAsAdmin">
                     Login as Admin (Dev Shortcut)
                 </button>
@@ -105,9 +112,57 @@
 
 @code {
     private bool IsLoginMode = true;
+    private bool isSubmitting = false;
+    private string errorMessage = "";
 
+    // Form Fields
+    private string email = "";
+    private string password = "";
+    private string confirmPassword = "";
+    private string firstName = "";
+    private string lastName = "";
 
-    private void HandleAuth() => NavManager.NavigateTo("");
+    private async Task HandleAuth()
+    {
+        errorMessage = "";
+        isSubmitting = true;
+
+        if (IsLoginMode)
+        {
+            var success = await AuthState.Login(email, password);
+            if (success) NavManager.NavigateTo("");
+            else errorMessage = "Invalid email or password.";
+        }
+        else
+        {
+            if (password != confirmPassword)
+            {
+                errorMessage = "Passwords do not match.";
+                isSubmitting = false;
+                return;
+            }
+
+            var success = await AuthState.Register(email, password, confirmPassword);
+            if (success) 
+            {
+                IsLoginMode = true; // Switch to login after successful register
+                errorMessage = "Registration successful! Please sign in.";
+            }
+            else 
+            {
+                errorMessage = "Registration failed. Check password requirements.";
+            }
+        }
+
+        isSubmitting = false;
+    }
+
+    private void ToggleMode()
+    {
+        IsLoginMode = !IsLoginMode;
+        errorMessage = "";
+    }
+
     private void LoginAsAdmin()
     {
         AuthState.SetAdmin(true);
