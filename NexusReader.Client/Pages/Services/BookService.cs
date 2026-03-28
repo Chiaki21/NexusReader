@@ -1,27 +1,94 @@
+using System.Net.Http.Json;
 using NexusReader.Shared.Models;
 
 namespace NexusReader.Services
 {
     public class BookService
     {
-        public List<BookModel> AllBooks { get; set; } = new();
+        private readonly HttpClient _http;
+        private readonly AuthStateService _auth;
 
-        public BookService()
+        public BookService(HttpClient http, AuthStateService auth)
         {
-            // Initializing with more colors and variety
-            AllBooks = new List<BookModel>
-            {
-                new BookModel { Id = 1, Title = "Book Lovers", Author = "Emily Henry", Category = "Romance", ColorTheme = "peach", Progress = 32, Description = "One summer. Two rivals. A plot twist they didn't see coming." },
-                new BookModel { Id = 2, Title = "Pride and Prejudice", Author = "Jane Austen", Category = "Classic", ColorTheme = "slate", Progress = 100, Description = "A timeless story of manners, upbringing, and marriage." },
-                new BookModel { Id = 3, Title = "Evelyn Hugo", Author = "Taylor Jenkins Reid", Category = "Contemporary", ColorTheme = "emerald", Progress = 0, Description = "The glamorous and scandalous life of a Hollywood icon." },
-                new BookModel { Id = 4, Title = "Thorns and Roses", Author = "Sarah J. Maas", Category = "Fantasy", ColorTheme = "lavender", Progress = 12, Description = "A captivating tale of faerie lands and dangerous bargains." },
-                new BookModel { Id = 5, Title = "The Love Hypothesis", Author = "Ali Hazelwood", Category = "Romance", ColorTheme = "blush", Progress = 0, Description = "When a fake relationship between scientists meets the irresistible force of attraction." },
-                new BookModel { Id = 6, Title = "Beach Read", Author = "Emily Henry", Category = "Romance", ColorTheme = "sky", Progress = 100, Description = "Two writers, one summer, and a challenge to swap genres." },
-                new BookModel { Id = 7, Title = "Dark Matter", Author = "Blake Crouch", Category = "Sci-Fi", ColorTheme = "slate", Progress = 50, Description = "A mind-bending thriller about the paths not taken." },
-                new BookModel { Id = 8, Title = "Circe", Author = "Madeline Miller", Category = "Fantasy", ColorTheme = "rose", Progress = 5, Description = "In the house of Helios, a daughter is born with the power of witchcraft." }
-            };
+            _http = http;
+            _auth = auth;
         }
 
-        public BookModel? GetBookById(int id) => AllBooks.FirstOrDefault(b => b.Id == id);
+        private void ApplyAuth() => _auth.ApplyAuthorizationHeader(_http);
+
+        public async Task<List<BookSummaryResponse>> GetBooksAsync()
+        {
+            ApplyAuth();
+            var list = await _http.GetFromJsonAsync<List<BookSummaryResponse>>("api/books");
+            return list ?? new List<BookSummaryResponse>();
+        }
+
+        public async Task<BookModel?> GetBookAsync(int id)
+        {
+            ApplyAuth();
+            var response = await _http.GetAsync($"api/books/{id}");
+            if (!response.IsSuccessStatusCode)
+                return null;
+            return await response.Content.ReadFromJsonAsync<BookModel>();
+        }
+
+        public async Task<List<ChapterListItemResponse>> GetChapterListAsync(int bookId)
+        {
+            ApplyAuth();
+            var list = await _http.GetFromJsonAsync<List<ChapterListItemResponse>>($"api/books/{bookId}/chapters");
+            return list ?? new List<ChapterListItemResponse>();
+        }
+
+        public async Task<ChapterContentResponse?> GetChapterContentAsync(int chapterId)
+        {
+            ApplyAuth();
+            return await _http.GetFromJsonAsync<ChapterContentResponse>($"api/chapters/{chapterId}");
+        }
+
+        public async Task<ChapterModel?> CreateChapterAsync(UpsertChapterRequest request)
+        {
+            ApplyAuth();
+            var response = await _http.PostAsJsonAsync("api/chapters", request);
+            if (!response.IsSuccessStatusCode)
+                return null;
+            return await response.Content.ReadFromJsonAsync<ChapterModel>();
+        }
+
+        public async Task<bool> UpdateChapterAsync(int id, UpsertChapterRequest request)
+        {
+            ApplyAuth();
+            var response = await _http.PutAsJsonAsync($"api/chapters/{id}", request);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> DeleteChapterAsync(int id)
+        {
+            ApplyAuth();
+            var response = await _http.DeleteAsync($"api/chapters/{id}");
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<BookModel?> CreateBookAsync(CreateBookRequest request)
+        {
+            ApplyAuth();
+            var response = await _http.PostAsJsonAsync("api/books", request);
+            if (!response.IsSuccessStatusCode)
+                return null;
+            return await response.Content.ReadFromJsonAsync<BookModel>();
+        }
+
+        public async Task<bool> UpdateBookAsync(int id, UpdateBookRequest request)
+        {
+            ApplyAuth();
+            var response = await _http.PutAsJsonAsync($"api/books/{id}", request);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> DeleteBookAsync(int id)
+        {
+            ApplyAuth();
+            var response = await _http.DeleteAsync($"api/books/{id}");
+            return response.IsSuccessStatusCode;
+        }
     }
 }

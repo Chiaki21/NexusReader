@@ -1,7 +1,7 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using NexusReader.Shared.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using NexusReader.Shared.Models;
 
 namespace NexusReader.Server.Data
 {
@@ -14,18 +14,33 @@ namespace NexusReader.Server.Data
 
         public DbSet<BookModel> Books { get; set; }
         public DbSet<ChapterModel> Chapters { get; set; }
+        public DbSet<FavoriteModel> Favorites { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // IMPORTANT: Call the base method to set up Identity tables!
             base.OnModelCreating(modelBuilder);
 
-            // This tells SQL that if a Book is deleted, delete its chapters too
             modelBuilder.Entity<BookModel>()
                 .HasMany(b => b.Chapters)
-                .WithOne()
-                .HasForeignKey(c => c.BookModelId)
+                .WithOne(c => c.Book)
+                .HasForeignKey(c => c.BookId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FavoriteModel>()
+                .HasOne(f => f.User)
+                .WithMany()
+                .HasForeignKey(f => f.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FavoriteModel>()
+                .HasOne(f => f.Book)
+                .WithMany()
+                .HasForeignKey(f => f.BookId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FavoriteModel>()
+                .HasIndex(f => new { f.UserId, f.BookId })
+                .IsUnique();
         }
     }
 }

@@ -64,7 +64,14 @@
         }
 
         if (!isAuthPage && !Auth.IsLoggedIn)
+        {
             NavManager.NavigateTo("/auth", replace: true);
+            return;
+        }
+
+        var isAdminPath = path.StartsWith("/admin", StringComparison.OrdinalIgnoreCase);
+        if (isAdminPath && Auth.IsLoggedIn && !Auth.IsAdmin)
+            NavManager.NavigateTo("/", replace: true);
     }
 
     public void Dispose()

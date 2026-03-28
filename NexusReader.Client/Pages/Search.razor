@@ -1,6 +1,8 @@
-@using NexusReader.Shared.Models
 @page "/search"
+@using NexusReader.Services
+@using NexusReader.Shared.Models
 @inject NavigationManager NavManager
+@inject BookService BookService
 
 <div class="search-container">
     <header class="search-header">
@@ -8,29 +10,36 @@
             <svg class="search-icon" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
             </svg>
-            <input type="text" 
-                   placeholder="Search by title or author..." 
-                   @bind="SearchQuery" 
-                   @bind:event="oninput" 
+            <input type="text"
+                   placeholder="Title, author, or category…"
+                   @bind="SearchQuery"
+                   @bind:event="oninput"
                    class="search-bar" />
         </div>
     </header>
 
-    @if (FilteredBooks.Any())
+    @if (Loading)
     {
-        <div class="results-info">
-            Found @FilteredBooks.Count() books
-        </div>
+        <p class="results-info">Loading…</p>
+    }
+    else if (FilteredBooks.Any())
+    {
+        <div class="results-info">Found @FilteredBooks.Count() books</div>
         <div class="book-grid">
             @foreach (var book in FilteredBooks)
             {
-                <div class="book-card" @onclick='() => NavManager.NavigateTo("reader")'>
-                    <div class="book-cover placeholder-@book.ColorTheme">
-                        <span class="cover-text">@book.Title</span>
+                <div class="book-card" @onclick='() => NavManager.NavigateTo($"book/{book.Id}")' style="cursor: pointer;">
+                    <div class="book-cover @(string.IsNullOrEmpty(book.CoverImageUrl) ? $"placeholder-{book.ColorTheme}" : "has-image")"
+                         style="@(!string.IsNullOrEmpty(book.CoverImageUrl) ? $"background-image:url({book.CoverImageUrl}); background-size:cover;" : "")">
+                        @if (string.IsNullOrEmpty(book.CoverImageUrl))
+                        {
+                            <span class="cover-text">@book.Title</span>
+                        }
                     </div>
                     <div class="book-details">
                         <h4 class="book-title">@book.Title</h4>
                         <p class="book-author">@book.Author</p>
+                        <span class="category-pill">@book.Category</span>
                     </div>
                 </div>
             }
@@ -49,20 +58,19 @@
 
 @code {
     private string SearchQuery { get; set; } = "";
+    private List<BookSummaryResponse> AllBooks { get; set; } = new();
+    private bool Loading = true;
 
-    private List<BookModel> AllBooks = new()
+    private IEnumerable<BookSummaryResponse> FilteredBooks =>
+        AllBooks.Where(b =>
+            string.IsNullOrWhiteSpace(SearchQuery) ||
+            b.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ||
+            b.Author.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ||
+            b.Category.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
     {
-        new BookModel { Title = "It Ends with Us", Author = "Colleen Hoover", ColorTheme = "blush" },
-        new BookModel { Title = "Book Lovers", Author = "Emily Henry", ColorTheme = "peach" },
-        new BookModel { Title = "Pride and Prejudice", Author = "Jane Austen", ColorTheme = "slate" },
-        new BookModel { Title = "The Love Hypothesis", Author = "Ali Hazelwood", ColorTheme = "blush" },
-        new BookModel { Title = "The Seven Husbands of Evelyn Hugo", Author = "Taylor Jenkins Reid", ColorTheme = "emerald" },
-        new BookModel { Title = "A Court of Thorns and Roses", Author = "Sarah J. Maas", ColorTheme = "lavender" }
-    };
-
-    private IEnumerable<BookModel> FilteredBooks => AllBooks
-        .Where(b => string.IsNullOrWhiteSpace(SearchQuery) || 
-                    b.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) || 
-                    b.Author.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
-
+        AllBooks = await BookService.GetBooksAsync();
+        Loading = false;
+    }
 }

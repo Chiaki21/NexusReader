@@ -1,26 +1,27 @@
-@page "/reader/{BookId:int}"
+@page "/reader/{BookId:int}/{ChapterId:int}"
+@using NexusReader.Services
+@using NexusReader.Shared.Models
 @inject NavigationManager NavManager
 @inject UserSettingsService Settings
 @inject BookService BookService
 @implements IDisposable
 @inject IJSRuntime JS
 
-@if (CurrentBook != null)
+@if (Content != null)
 {
     <div class="reader-container @(ShowMenu ? "menu-visible" : "menu-hidden")" @onclick="ToggleMenu">
-        
         <nav class="reader-nav" @onclick:stopPropagation>
-            <button class="back-button" @onclick="GoBack">
+            <button type="button" class="back-button" @onclick="GoBack">
                 <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M15 18l-6-6 6-6" />
                 </svg>
                 <span>Back</span>
             </button>
             <div class="book-metadata">
-                <span class="chapter-label">Chapter 1</span>
-                <h2 class="book-title-small">@CurrentBook.Title</h2>
+                <span class="chapter-label">Chapter @Content.ChapterNumber</span>
+                <h2 class="book-title-small">@Content.BookTitle</h2>
             </div>
-            <button class="settings-trigger" @onclick='() => NavManager.NavigateTo("settings")'>
+            <button type="button" class="settings-trigger" @onclick='() => NavManager.NavigateTo("settings")'>
                 <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M4 6h16M4 12h16m-7 6h7" />
                 </svg>
@@ -28,41 +29,83 @@
         </nav>
 
         <main class="reading-surface">
-            <article class="prose" style="font-size: @(Settings.FontSize)px;">
-                <h1>Chapter One</h1>
-                <p>The problem with being a person who loves stories is that you’re always looking for the beauty in things that are meant to be temporary.</p>
-                <p>I looked at the pages, and for a second, the rest of the world just went quiet. It wasn’t a loud realization. It was soft, like the petals of a lily opening at dawn.</p>
-                <p>"You’re thinking again," the voice said, a low vibration that seemed to settle right in my chest.</p>
-                <p>This was the start of something new. A journey through @CurrentBook.Category that would change everything.</p>
+            <article class="prose reader-article" style="font-size: @(Settings.FontSize)px;">
+                <h1 class="reader-chapter-title">@Content.Title</h1>
+                <div class="reader-body">
+                    @((MarkupString)SanitizedContent)
+                </div>
             </article>
         </main>
 
         <div class="reader-footer" @onclick:stopPropagation>
-            <button class="nav-btn">Previous</button>
+            <button type="button" class="nav-btn" disabled="@(Content.PrevChapterId == null)" @onclick="GoPrev">Previous</button>
             <div class="reading-progress">
-                <div class="progress-dot"></div>
-                <span>Page 1 of 350</span>
+                <span>@Content.ChapterNumber / @TotalChapters</span>
             </div>
-            <button class="nav-btn">Next</button>
+            <button type="button" class="nav-btn" disabled="@(Content.NextChapterId == null)" @onclick="GoNext">Next</button>
         </div>
     </div>
+}
+else if (LoadError != null)
+{
+    <p class="reader-error">@LoadError</p>
+}
+else
+{
+    <p class="reader-loading">Loading…</p>
 }
 
 @code {
     [Parameter] public int BookId { get; set; }
-    private BookModel? CurrentBook;
-    private bool ShowMenu = true; // Default to showing menu so user can see context
+    [Parameter] public int ChapterId { get; set; }
+
+    private ChapterContentResponse? Content;
+    private int TotalChapters = 1;
+    private bool ShowMenu = true;
+    private string? LoadError;
+
+    private string SanitizedContent =>
+        string.IsNullOrEmpty(Content?.Content)
+            ? "<p></p>"
+            : Content!.Content;
+
+    private void ToggleMenu() => ShowMenu = !ShowMenu;
 
     private async Task GoBack() => await JS.InvokeVoidAsync("history.back");
-    private void ToggleMenu() => ShowMenu = !ShowMenu;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadChapter();
+    }
+
+    private async Task LoadChapter()
+    {
+        LoadError = null;
+        Content = await BookService.GetChapterContentAsync(ChapterId);
+        if (Content == null)
+        {
+            LoadError = "Could not load chapter.";
+            return;
+        }
+
+        var toc = await BookService.GetChapterListAsync(BookId);
+        TotalChapters = Math.Max(1, toc.Count);
+    }
+
+    private void GoPrev()
+    {
+        if (Content?.PrevChapterId != null)
+            NavManager.NavigateTo($"/reader/{BookId}/{Content.PrevChapterId}");
+    }
+
+    private void GoNext()
+    {
+        if (Content?.NextChapterId != null)
+            NavManager.NavigateTo($"/reader/{BookId}/{Content.NextChapterId}");
+    }
 
     protected override void OnInitialized()
     {
-        CurrentBook = BookService.GetBookById(BookId);
-        
-        if (CurrentBook == null)
-            NavManager.NavigateTo("");
-
         Settings.OnChange += StateHasChanged;
     }
 

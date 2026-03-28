@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.JSInterop;
@@ -22,9 +23,19 @@ namespace NexusReader.Services
         public bool IsLoggedIn { get; private set; }
         public bool IsAdmin { get; private set; }
         public string UserFirstName { get; private set; } = string.Empty;
+        public string UserLastName { get; private set; } = string.Empty;
         public string UserEmail { get; private set; } = string.Empty;
+        public string? AccessToken { get; private set; }
 
         public event Action? OnAuthStateChanged;
+
+        public void ApplyAuthorizationHeader(HttpClient http)
+        {
+            if (string.IsNullOrEmpty(AccessToken))
+                http.DefaultRequestHeaders.Authorization = null;
+            else
+                http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
+        }
 
         public async Task RestoreSessionAsync()
         {
@@ -34,9 +45,7 @@ namespace NexusReader.Services
             var payloadJson = !string.IsNullOrEmpty(localJson) ? localJson : sessionJson;
             if (string.IsNullOrEmpty(payloadJson))
             {
-                IsLoggedIn = false;
-                UserFirstName = string.Empty;
-                UserEmail = string.Empty;
+                ClearMemoryState();
                 return;
             }
 
@@ -46,21 +55,22 @@ namespace NexusReader.Services
                 if (payload == null || string.IsNullOrEmpty(payload.Email))
                 {
                     await ClearPersistedSessionAsync();
-                    IsLoggedIn = false;
+                    ClearMemoryState();
                     return;
                 }
 
                 UserEmail = payload.Email;
                 UserFirstName = payload.FirstName ?? string.Empty;
+                UserLastName = payload.LastName ?? string.Empty;
+                AccessToken = payload.AccessToken;
+                IsAdmin = payload.IsAdmin;
                 IsLoggedIn = true;
                 NotifyStateChanged();
             }
             catch
             {
                 await ClearPersistedSessionAsync();
-                IsLoggedIn = false;
-                UserFirstName = string.Empty;
-                UserEmail = string.Empty;
+                ClearMemoryState();
             }
         }
 
@@ -89,7 +99,10 @@ namespace NexusReader.Services
             IsLoggedIn = true;
             UserEmail = email;
             UserFirstName = body?.FirstName ?? string.Empty;
-            await PersistSessionAsync(email, UserFirstName, rememberMe);
+            UserLastName = body?.LastName ?? string.Empty;
+            AccessToken = body?.Token;
+            IsAdmin = body?.Roles?.Contains("Admin") == true;
+            await PersistSessionAsync(rememberMe);
             NotifyStateChanged();
             return true;
         }
@@ -103,20 +116,30 @@ namespace NexusReader.Services
 
         public async Task LogoutAsync()
         {
-            IsLoggedIn = false;
-            IsAdmin = false;
-            UserFirstName = string.Empty;
-            UserEmail = string.Empty;
+            ClearMemoryState();
             await ClearPersistedSessionAsync();
             NotifyStateChanged();
         }
 
-        private async Task PersistSessionAsync(string email, string firstName, bool rememberMe)
+        private void ClearMemoryState()
+        {
+            IsLoggedIn = false;
+            IsAdmin = false;
+            UserFirstName = string.Empty;
+            UserLastName = string.Empty;
+            UserEmail = string.Empty;
+            AccessToken = null;
+        }
+
+        private async Task PersistSessionAsync(bool rememberMe)
         {
             var payload = JsonSerializer.Serialize(new StoredAuthPayload
             {
-                Email = email,
-                FirstName = firstName
+                Email = UserEmail,
+                FirstName = UserFirstName,
+                LastName = UserLastName,
+                AccessToken = AccessToken,
+                IsAdmin = IsAdmin
             });
 
             if (rememberMe)
@@ -143,12 +166,18 @@ namespace NexusReader.Services
         {
             public string Email { get; set; } = string.Empty;
             public string? FirstName { get; set; }
+            public string? LastName { get; set; }
+            public string? AccessToken { get; set; }
+            public bool IsAdmin { get; set; }
         }
 
         private sealed class LoginResponseDto
         {
             public string? Message { get; set; }
+            public string? Token { get; set; }
             public string? FirstName { get; set; }
+            public string? LastName { get; set; }
+            public string[]? Roles { get; set; }
         }
     }
 }

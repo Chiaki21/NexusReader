@@ -192,6 +192,7 @@
 .placeholder-lavender { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
 .placeholder-blush { background: linear-gradient(135deg, #f43f5e, #be123c); }
 .placeholder-sky { background: linear-gradient(135deg, #38bdf8, #0369a1); }
+.placeholder-rose { background: linear-gradient(135deg, #fb7185, #be123c); }
 
 .book-details {
     display: flex;

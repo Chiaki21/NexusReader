@@ -108,6 +108,35 @@
     box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
 }
 
+.reader-article {
+    max-width: 42rem;
+    margin: 0 auto;
+}
+
+.reader-chapter-title {
+    margin-bottom: 1.5rem;
+    font-weight: 700;
+}
+
+.reader-body {
+    line-height: 1.75;
+}
+
+.reader-body ::deep(p) {
+    margin-bottom: 1rem;
+}
+
+.reader-error,
+.reader-loading {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.reader-error {
+    color: #f87171;
+}
+
 /* Mobile logic */
 @media (max-width: 768px) {
     .back-button span { display: none; }

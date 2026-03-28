@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using NexusReader.Api.Services;
 using NexusReader.Shared.Models;
 
 namespace NexusReader.Api.Controllers
@@ -11,40 +12,32 @@ namespace NexusReader.Api.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IMemoryCache _cache;
+        private readonly JwtTokenService _jwt;
 
-        public AccountController(UserManager<ApplicationUser> userManager, IMemoryCache cache)
+        public AccountController(UserManager<ApplicationUser> userManager, IMemoryCache cache, JwtTokenService jwt)
         {
             _userManager = userManager;
             _cache = cache;
+            _jwt = jwt;
         }
 
         [HttpPost("send-code")]
-        public async Task<IActionResult> SendCode([FromBody] string email) // Changed to async Task
+        public async Task<IActionResult> SendCode([FromBody] string email)
         {
             if (string.IsNullOrEmpty(email)) return BadRequest("Email is required.");
 
-            try 
+            try
             {
-                // 1. Generate a random 6-digit code
                 var code = new Random().Next(100000, 999999).ToString();
-
-                // 2. Store in cache for 15 minutes
                 _cache.Set(email, code, TimeSpan.FromMinutes(15));
 
-                // 3. TRIGGER THE ACTUAL EMAIL
-                // We create an instance of your EmailController to use its logic
                 var emailController = new EmailController();
                 var emailRequest = new EmailRequest { Email = email, Code = code };
-                
                 var emailResult = await emailController.SendEmail(emailRequest);
 
-                // If EmailController returns a 500, we catch it here
                 if (emailResult is ObjectResult obj && obj.StatusCode == 500)
-                {
                     return StatusCode(500, obj.Value);
-                }
 
-                // Debug fallback in case email is slow
                 Console.WriteLine($"***********************************************");
                 Console.WriteLine($"SENT TO {email}: {code}");
                 Console.WriteLine($"***********************************************");
@@ -60,18 +53,12 @@ namespace NexusReader.Api.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterModel model)
         {
-            // 1. Check the Cache for the code
             if (!_cache.TryGetValue(model.Email, out string? storedCode))
-            {
                 return BadRequest(new { Message = "Code expired. Please request a new one." });
-            }
 
             if (storedCode != model.VerificationCode)
-            {
                 return BadRequest(new { Message = "Invalid verification code." });
-            }
 
-            // 2. Code is correct, now create the user
             var user = new ApplicationUser
             {
                 UserName = model.Email,
@@ -84,7 +71,7 @@ namespace NexusReader.Api.Controllers
 
             if (result.Succeeded)
             {
-                _cache.Remove(model.Email); // Cleanup cache on success
+                _cache.Remove(model.Email);
                 return Ok(new { Message = "User registered successfully!" });
             }
 
@@ -97,7 +84,17 @@ namespace NexusReader.Api.Controllers
             var user = await _userManager.FindByEmailAsync(model.Email);
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
             {
-                return Ok(new { Message = "Login successful", FirstName = user.FirstName });
+                var roles = await _userManager.GetRolesAsync(user);
+                var token = _jwt.CreateToken(user, roles);
+                return Ok(new
+                {
+                    Message = "Login successful",
+                    Token = token,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    Roles = roles
+                });
             }
             return Unauthorized("Invalid login attempt.");
         }

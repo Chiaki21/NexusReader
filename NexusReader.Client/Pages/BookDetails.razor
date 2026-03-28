@@ -1,22 +1,29 @@
 @page "/book/{BookId:int}"
+@using NexusReader.Services
+@using NexusReader.Shared.Models
 @inject BookService BookService
+@inject FavoriteService FavoriteService
 @inject NavigationManager NavManager
 
 <div class="details-container">
-    <button class="btn-back" @onclick='() => NavManager.NavigateTo("")'>
+    <button type="button" class="btn-back" @onclick='() => NavManager.NavigateTo("")'>
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path d="M15 19l-7-7 7-7"/>
         </svg>
         Back to Library
     </button>
 
-    @if (CurrentBook != null)
+    @if (Loading)
+    {
+        <p>Loading…</p>
+    }
+    else if (CurrentBook != null)
     {
         <div class="details-layout">
             <div class="cover-section">
-                @if (!string.IsNullOrEmpty(CurrentBook.CoverImage))
+                @if (!string.IsNullOrEmpty(CurrentBook.CoverImageUrl))
                 {
-                    <img src="@CurrentBook.CoverImage" class="main-cover" />
+                    <img src="@CurrentBook.CoverImageUrl" class="main-cover" alt="" />
                 }
                 else
                 {
@@ -29,24 +36,20 @@
                     <span class="category-badge">@CurrentBook.Category</span>
                     @if (CurrentBook.Progress == 0)
                     {
-                        <span class="status-badge">New Discovery</span>
+                        <span class="status-badge">New</span>
                     }
                 </div>
 
                 <h1 class="book-title">@CurrentBook.Title</h1>
                 <p class="book-author">by @CurrentBook.Author</p>
-
-                <div class="rating-row">
-                    <span class="stars">⭐⭐⭐⭐⭐</span>
-                    <span class="review-count">(1,240 Reviews)</span>
-                </div>
+                <p class="meta-line">Added @CurrentBook.UploadDate.ToLocalTime().ToString("d")</p>
 
                 <div class="action-row">
-                    <button class="btn-primary main-action" @onclick='() => NavManager.NavigateTo($"reader/{CurrentBook.Id}")'>
-    Start Reading
-</button>
-                    <button class="btn-secondary-outline">
-                        Add to Favorites
+                    <button type="button" class="btn-primary main-action" @onclick="StartReading">
+                        Start Reading
+                    </button>
+                    <button type="button" class="btn-secondary-outline" @onclick="ToggleFavorite" disabled="@FavoriteBusy">
+                        @(IsFavorite ? "Remove from Favorites" : "Add to Favorites")
                     </button>
                 </div>
 
@@ -54,23 +57,90 @@
                     <h3>About this book</h3>
                     <p>@CurrentBook.Description</p>
                 </div>
+
+                <div class="chapters-toc">
+                    <h3>Chapters</h3>
+                    <ol class="chapter-list-plain">
+                        @foreach (var ch in ChapterList.OrderBy(c => c.ChapterNumber))
+                        {
+                            <li>
+                                <button type="button" class="chapter-link" @onclick='() => NavManager.NavigateTo($"reader/{BookId}/{ch.Id}")'>
+                                    @ch.ChapterNumber. @ch.Title
+                                </button>
+                            </li>
+                        }
+                    </ol>
+                </div>
             </div>
         </div>
+    }
+    else if (!string.IsNullOrEmpty(Error))
+    {
+        <p class="error-text">@Error</p>
     }
 </div>
 
 @code {
     [Parameter] public int BookId { get; set; }
     private BookModel? CurrentBook;
+    private List<ChapterListItemResponse> ChapterList { get; set; } = new();
+    private bool Loading = true;
+    private bool IsFavorite;
+    private bool FavoriteBusy;
+    private string? Error;
 
-    protected override void OnInitialized()
+    protected override async Task OnParametersSetAsync()
     {
-        // Simple! Grab it from the service
-        CurrentBook = BookService.GetBookById(BookId);
-
-        if (CurrentBook == null)
+        Loading = true;
+        Error = null;
+        try
         {
-            NavManager.NavigateTo("");
+            CurrentBook = await BookService.GetBookAsync(BookId);
+            if (CurrentBook != null)
+            {
+                ChapterList = (await BookService.GetChapterListAsync(BookId)).ToList();
+                var favs = await FavoriteService.GetFavoritesAsync();
+                IsFavorite = favs.Any(f => f.Id == BookId);
+            }
+            else
+                Error = "Book not found.";
+        }
+        catch (Exception ex)
+        {
+            Error = ex.Message;
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private void StartReading()
+    {
+        var first = ChapterList.OrderBy(c => c.ChapterNumber).FirstOrDefault();
+        if (first != null)
+            NavManager.NavigateTo($"reader/{BookId}/{first.Id}");
+    }
+
+    private async Task ToggleFavorite()
+    {
+        FavoriteBusy = true;
+        try
+        {
+            if (IsFavorite)
+            {
+                if (await FavoriteService.RemoveFavoriteAsync(BookId))
+                    IsFavorite = false;
+            }
+            else
+            {
+                if (await FavoriteService.AddFavoriteAsync(BookId))
+                    IsFavorite = true;
+            }
+        }
+        finally
+        {
+            FavoriteBusy = false;
         }
     }
 }

@@ -7,31 +7,30 @@
 <div class="profile-container">
     <header class="profile-header">
         <div class="avatar-circle">
-            <span>JD</span>
+            <span>@Initials</span>
         </div>
-        <h1 class="user-name">Jane Doe</h1>
-        <p class="user-handle">@@romance_reader_26</p>
+        <h1 class="user-name">@DisplayName</h1>
+        <p class="user-handle">@AuthService.UserEmail</p>
         <div class="header-actions">
-            <button class="btn-edit">Edit Profile</button>
+            <button class="btn-edit" type="button" disabled>Edit Profile</button>
         </div>
     </header>
 
     <div class="stats-grid">
         <div class="stat-card">
-            <span class="stat-value">12</span>
+            <span class="stat-value">—</span>
             <span class="stat-label">Books Read</span>
         </div>
         <div class="stat-card">
-            <span class="stat-value">5</span>
+            <span class="stat-value">—</span>
             <span class="stat-label">This Month</span>
         </div>
         <div class="stat-card">
-            <span class="stat-value">14</span>
+            <span class="stat-value">—</span>
             <span class="stat-label">Day Streak</span>
         </div>
     </div>
 
-    @* Settings & Actions Section *@
     <section class="settings-section">
         <h2 class="section-title">Account Settings</h2>
         <div class="settings-list">
@@ -62,21 +61,23 @@
             </button>
         </div>
     </section>
-
-    <section class="goal-section">
-        <div class="goal-header">
-            <h2 class="section-title">2026 Reading Goal</h2>
-            <span class="goal-count">12 / 50 books</span>
-        </div>
-        <div class="goal-progress-bg">
-            <div class="goal-progress-fill" style="width: 24%;"></div>
-        </div>
-    </section>
-
-    @* Recently Finished remains the same... *@
 </div>
 
 @code {
+    private string DisplayName =>
+        string.Join(" ", new[] { AuthService.UserFirstName, AuthService.UserLastName }.Where(s => !string.IsNullOrWhiteSpace(s))).Trim();
+
+    private string Initials
+    {
+        get
+        {
+            var f = AuthService.UserFirstName;
+            var l = AuthService.UserLastName;
+            var a = (!string.IsNullOrEmpty(f) ? f[0].ToString() : "") + (!string.IsNullOrEmpty(l) ? l[0].ToString() : "");
+            return string.IsNullOrEmpty(a) ? "?" : a.ToUpperInvariant();
+        }
+    }
+
     private async Task HandleSignOutAsync()
     {
         await AuthService.LogoutAsync();

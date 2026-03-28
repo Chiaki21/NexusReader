@@ -1,6 +1,8 @@
 @page "/favorites"
+@using NexusReader.Services
+@using NexusReader.Shared.Models
 @inject NavigationManager NavManager
-@inject BookService BookService
+@inject FavoriteService FavoriteService
 
 <div class="favorites-container">
     <header class="favorites-header">
@@ -8,15 +10,23 @@
         <p class="subtitle">The stories that stayed with you.</p>
     </header>
 
-    @if (FavoriteBooks.Any())
+    @if (Loading)
+    {
+        <p class="subtitle">Loading…</p>
+    }
+    else if (Books.Any())
     {
         <div class="book-grid">
-            @foreach (var book in FavoriteBooks)
+            @foreach (var book in Books)
             {
-                <div class="book-card" @onclick='() => NavManager.NavigateTo("reader")'>
-                    <div class="book-cover placeholder-@book.ColorTheme">
+                <div class="book-card" @onclick='() => NavManager.NavigateTo($"book/{book.Id}")' style="cursor: pointer;">
+                    <div class="book-cover @(string.IsNullOrEmpty(book.CoverImageUrl) ? $"placeholder-{book.ColorTheme}" : "has-image")"
+                         style="@(!string.IsNullOrEmpty(book.CoverImageUrl) ? $"background-image:url({book.CoverImageUrl}); background-size:cover;" : "")">
                         <div class="heart-badge">❤️</div>
-                        <span class="cover-text">@book.Title</span>
+                        @if (string.IsNullOrEmpty(book.CoverImageUrl))
+                        {
+                            <span class="cover-text">@book.Title</span>
+                        }
                     </div>
                     <div class="book-details">
                         <h4 class="book-title">@book.Title</h4>
@@ -31,14 +41,19 @@
         <div class="empty-favorites">
             <div class="empty-icon">💖</div>
             <h2>No favorites yet</h2>
-            <p>Tap the heart on any book to save it to your personal collection.</p>
-            <button class="btn-primary" @onclick='() => NavManager.NavigateTo("")'>Explore Library</button>
+            <p>Save books from the details page to see them here.</p>
+            <button type="button" class="btn-primary" @onclick='() => NavManager.NavigateTo("")'>Explore Library</button>
         </div>
     }
 </div>
 
 @code {
-    // This should be replaced with actual favorite logic from the BookService.
-    // For now, we'll display the first two books from the service as placeholders.
-    private IEnumerable<BookModel> FavoriteBooks => BookService.AllBooks.Take(2);
+    private List<BookSummaryResponse> Books { get; set; } = new();
+    private bool Loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Books = await FavoriteService.GetFavoritesAsync();
+        Loading = false;
+    }
 }

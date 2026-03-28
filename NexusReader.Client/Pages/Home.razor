@@ -1,75 +1,137 @@
-﻿@page "/"
-
+@page "/"
+@using NexusReader.Services
+@using NexusReader.Shared.Models
 @inject NavigationManager NavManager
 @inject BookService BookService
 
 <div class="dashboard-container">
-    
     <header class="dashboard-header">
         <h1 class="page-title">Welcome back!</h1>
         <p class="page-subtitle">Pick up where you left off or start something new.</p>
     </header>
 
-   <section class="continue-reading-section">
+    <section class="continue-reading-section">
         <h2 class="section-title">Continue Reading</h2>
-        @* Added click event to the hero card (Assuming ID 1 is the main book) *@
-        <div class="hero-card" @onclick='() => NavManager.NavigateTo("book/1")' style="cursor: pointer;">
-            <div class="hero-cover" style="background: linear-gradient(135deg, #e11d48, #9f1239);">
-                <span class="cover-text">It Ends with Us</span>
-            </div>
-            <div class="hero-info">
-                <h3 class="hero-title">It Ends with Us</h3>
-                <p class="hero-author">Colleen Hoover</p>
-                
-                <div class="progress-container">
-                    <div class="progress-bar" style="width: 82%;"></div>
+        @if (ContinueBook != null)
+        {
+            <div class="hero-card" @onclick='() => GoToBook(ContinueBook.Id)' style="cursor: pointer;">
+                <div class="hero-cover @(string.IsNullOrEmpty(ContinueBook.CoverImageUrl) ? $"placeholder-{ContinueBook.ColorTheme}" : "")" style="@(!string.IsNullOrEmpty(ContinueBook.CoverImageUrl) ? $"background-image:url({ContinueBook.CoverImageUrl}); background-size:cover;" : "")">
+                    @if (string.IsNullOrEmpty(ContinueBook.CoverImageUrl))
+                    {
+                        <span class="cover-text">@ContinueBook.Title</span>
+                    }
                 </div>
-                <p class="progress-text">82% completed • Chapter 24</p>
-                
-                <button class="btn-primary" @onclick:stopPropagation="true" @onclick='() => NavManager.NavigateTo("reader/1")'>
-    Resume Reading
-</button>
+                <div class="hero-info">
+                    <h3 class="hero-title">@ContinueBook.Title</h3>
+                    <p class="hero-author">@ContinueBook.Author</p>
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: @(ContinueBook.Progress)%"></div>
+                    </div>
+                    <p class="progress-text">@ContinueBook.Progress% • @ContinueBook.Category</p>
+                    <button type="button" class="btn-primary" @onclick:stopPropagation="true" @onclick="ResumeReadingAsync">
+                        Resume Reading
+                    </button>
+                </div>
             </div>
-        </div>
+        }
+        else if (!Loading && Books.Any())
+        {
+            <p class="page-subtitle" style="opacity:.85;">No book in progress — open your library below.</p>
+        }
+        else if (Loading)
+        {
+            <p class="page-subtitle">Loading…</p>
+        }
     </section>
 
     <section class="library-section">
         <div class="library-header">
             <h2 class="section-title">Your Library</h2>
-            @* We'll link this to the search or a placeholder for now *@
-            <button class="btn-secondary" @onclick='() => NavManager.NavigateTo("search")'>+ Add Book</button>
+            <button type="button" class="btn-secondary" @onclick='() => NavManager.NavigateTo("search")'>Search</button>
         </div>
 
-        <div class="book-grid">
-            @foreach (var book in DummyBooks)
-            {
-                @* Clicking the card navigates to the Details page using the book's Id *@
-                <div class="book-card" @onclick='() => NavManager.NavigateTo($"book/{book.Id}")' style="cursor: pointer;">
-                    <div class="book-cover placeholder-@book.ColorTheme">
-                        <span class="cover-text">@book.Title</span>
+        @if (Loading)
+        {
+            <p>Loading books…</p>
+        }
+        else if (!Books.Any())
+        {
+            <p class="page-subtitle">No books in the catalog yet.</p>
+        }
+        else
+        {
+            <div class="book-grid">
+                @foreach (var book in RecentBooks)
+                {
+                    <div class="book-card" @onclick='() => GoToBook(book.Id)' style="cursor: pointer;">
+                        <div class="book-cover @(string.IsNullOrEmpty(book.CoverImageUrl) ? $"placeholder-{book.ColorTheme}" : "has-image")"
+                             style="@(!string.IsNullOrEmpty(book.CoverImageUrl) ? $"background-image:url({book.CoverImageUrl}); background-size:cover;" : "")">
+                            @if (string.IsNullOrEmpty(book.CoverImageUrl))
+                            {
+                                <span class="cover-text">@book.Title</span>
+                            }
+                        </div>
+                        <div class="book-details">
+                            <h4 class="book-title">@book.Title</h4>
+                            <p class="book-author">@book.Author</p>
+                            @if (book.Progress > 0 && book.Progress < 100)
+                            {
+                                <div class="mini-progress-container">
+                                    <div class="mini-progress-bar" style="width: @(book.Progress)%"></div>
+                                </div>
+                            }
+                            else if (book.Progress >= 100)
+                            {
+                                <span class="badge-finished">Finished</span>
+                            }
+                        </div>
                     </div>
-                    <div class="book-details">
-                        <h4 class="book-title">@book.Title</h4>
-                        <p class="book-author">@book.Author</p>
-                        
-                        @if (book.Progress > 0 && book.Progress < 100)
-                        {
-                            <div class="mini-progress-container">
-                                <div class="mini-progress-bar" style="width: @(book.Progress)%"></div>
-                            </div>
-                        }
-                        else if (book.Progress == 100)
-                        {
-                            <span class="badge-finished">Finished</span>
-                        }
-                    </div>
-                </div>
-            }
-        </div>
+                }
+            </div>
+        }
     </section>
 
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <p class="error-banner">@Error</p>
+    }
 </div>
 
 @code {
-    private List<BookModel> DummyBooks => BookService.AllBooks;
+    private List<BookSummaryResponse> Books { get; set; } = new();
+    private bool Loading = true;
+    private string? Error;
+
+    private BookSummaryResponse? ContinueBook =>
+        Books.FirstOrDefault(b => b is { Progress: > 0 and < 100 }) ?? Books.FirstOrDefault();
+
+    private IEnumerable<BookSummaryResponse> RecentBooks =>
+        Books.OrderByDescending(b => b.UploadDate).Take(12);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Books = await BookService.GetBooksAsync();
+        }
+        catch (Exception ex)
+        {
+            Error = ex.Message;
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private void GoToBook(int id) => NavManager.NavigateTo($"book/{id}");
+
+    private async Task ResumeReadingAsync()
+    {
+        if (ContinueBook == null) return;
+        var chapters = await BookService.GetChapterListAsync(ContinueBook.Id);
+        var first = chapters.OrderBy(c => c.ChapterNumber).FirstOrDefault();
+        if (first != null)
+            NavManager.NavigateTo($"reader/{ContinueBook.Id}/{first.Id}");
+    }
 }

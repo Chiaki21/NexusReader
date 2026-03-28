@@ -88,3 +88,17 @@
 
 .book-title { font-size: 0.95rem; font-weight: 600; margin: 0.5rem 0 0.2rem 0; }
 .book-author { font-size: 0.85rem; color: var(--text-secondary); }
+
+.category-pill {
+    display: inline-block;
+    margin-top: 0.35rem;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--text-secondary, #94a3b8);
+}
+
+.book-cover.has-image {
+    background-color: #1e293b;
+}
