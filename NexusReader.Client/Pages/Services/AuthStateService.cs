@@ -160,6 +160,32 @@ namespace NexusReader.Services
             await _js.InvokeVoidAsync("sessionStorage.removeItem", SessionKey);
         }
 
+        private async Task PersistSessionAsync(string email, string firstName, bool rememberMe)
+        {
+            var payload = JsonSerializer.Serialize(new StoredAuthPayload
+            {
+                Email = email,
+                FirstName = firstName
+            });
+
+            if (rememberMe)
+            {
+                await _js.InvokeVoidAsync("localStorage.setItem", LocalKey, payload);
+                await _js.InvokeVoidAsync("sessionStorage.removeItem", SessionKey);
+            }
+            else
+            {
+                await _js.InvokeVoidAsync("sessionStorage.setItem", SessionKey, payload);
+                await _js.InvokeVoidAsync("localStorage.removeItem", LocalKey);
+            }
+        }
+
+        private async Task ClearPersistedSessionAsync()
+        {
+            await _js.InvokeVoidAsync("localStorage.removeItem", LocalKey);
+            await _js.InvokeVoidAsync("sessionStorage.removeItem", SessionKey);
+        }
+
         private void NotifyStateChanged() => OnAuthStateChanged?.Invoke();
 
         private sealed class StoredAuthPayload
