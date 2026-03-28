@@ -78,6 +78,14 @@
                     <input type="password" placeholder="••••••••" @bind="password" />
                 </div>
 
+                @if (IsLoginMode)
+                {
+                    <div class="remember-me-row">
+                        <input id="remember-me" type="checkbox" @bind="rememberMe" />
+                        <label for="remember-me">Remember me on this device</label>
+                    </div>
+                }
+
                 @if (!IsLoginMode)
                 {
                     <div class="input-group">
@@ -131,6 +139,7 @@
     private string password = "";
     private string confirmPassword = "";
     private string verificationCode = "";
+    private bool rememberMe;
 
     private async Task HandleAuth()
     {
@@ -152,8 +161,8 @@
         {
             if (IsLoginMode)
             {
-                var success = await AuthState.Login(email, password);
-                if (success) NavManager.NavigateTo("");
+                var success = await AuthState.Login(email, password, rememberMe);
+                if (success) NavManager.NavigateTo("", replace: true);
                 else errorMessage = "Invalid email or password.";
             }
             else
@@ -254,5 +263,6 @@
         lastName = "";
         isOver18 = null;
         verificationCode = "";
+        rememberMe = false;
     }
 }

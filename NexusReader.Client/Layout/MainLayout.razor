@@ -1,6 +1,8 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@using NexusReader.Services
 @inject UserSettingsService Settings
 @inject NavigationManager NavManager
+@inject AuthStateService Auth
 @implements IDisposable
 
 <div class="app-root @(Settings.IsDarkMode ? "dark-theme" : "light-theme")" 
@@ -32,19 +34,37 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Load saved settings
+        await Auth.RestoreSessionAsync();
+        EnforceRouteAccess();
+
         await Settings.InitializeAsync();
-        
-        // Subscribe to settings changes (Dark mode/Font size)
+
         Settings.OnChange += StateHasChanged;
-        
-        // Subscribe to URL changes so the sidebar toggles correctly
         NavManager.LocationChanged += HandleLocationChanged;
     }
 
     private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
     {
+        EnforceRouteAccess();
         StateHasChanged();
+    }
+
+    private void EnforceRouteAccess()
+    {
+        var path = new Uri(NavManager.Uri).AbsolutePath;
+        if (path.Length > 1 && path.EndsWith('/'))
+            path = path.TrimEnd('/');
+
+        var isAuthPage = path.Equals("/auth", StringComparison.OrdinalIgnoreCase);
+
+        if (isAuthPage && Auth.IsLoggedIn)
+        {
+            NavManager.NavigateTo("/", replace: true);
+            return;
+        }
+
+        if (!isAuthPage && !Auth.IsLoggedIn)
+            NavManager.NavigateTo("/auth", replace: true);
     }
 
     public void Dispose()
@@ -52,4 +72,5 @@
         Settings.OnChange -= StateHasChanged;
         NavManager.LocationChanged -= HandleLocationChanged;
     }
+
 }

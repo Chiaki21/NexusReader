@@ -131,6 +131,28 @@
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
+.remember-me-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: -0.35rem;
+}
+
+.remember-me-row input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent-primary);
+  cursor: pointer;
+}
+
+.remember-me-row label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
 /* --- Age Verification (Radio Buttons) --- */
 .age-verification {
   margin: 0.5rem 0;

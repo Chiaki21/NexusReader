@@ -53,7 +53,7 @@
                 <svg class="chevron-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
             </div>
 
-            <button class="settings-item logout-item" @onclick="HandleSignOut">
+            <button class="settings-item logout-item" @onclick="HandleSignOutAsync">
                 <div class="settings-info">
                     <span class="settings-name">Sign Out</span>
                     <span class="settings-desc">Securely exit your account</span>
@@ -77,9 +77,9 @@
 </div>
 
 @code {
-    private void HandleSignOut()
+    private async Task HandleSignOutAsync()
     {
-        AuthService.Logout();
-        NavManager.NavigateTo("auth");
+        await AuthService.LogoutAsync();
+        NavManager.NavigateTo("auth", replace: true);
     }
 }

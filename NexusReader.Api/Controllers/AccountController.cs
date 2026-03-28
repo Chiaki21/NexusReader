@@ -9,10 +9,10 @@ namespace NexusReader.Api.Controllers
     [ApiController]
     public class AccountController : ControllerBase
     {
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IMemoryCache _cache;
 
-        public AccountController(UserManager<IdentityUser> userManager, IMemoryCache cache)
+        public AccountController(UserManager<ApplicationUser> userManager, IMemoryCache cache)
         {
             _userManager = userManager;
             _cache = cache;
@@ -72,7 +72,14 @@ namespace NexusReader.Api.Controllers
             }
 
             // 2. Code is correct, now create the user
-            var user = new IdentityUser { UserName = model.Email, Email = model.Email };
+            var user = new ApplicationUser
+            {
+                UserName = model.Email,
+                Email = model.Email,
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                IsOver18 = model.IsOver18
+            };
             var result = await _userManager.CreateAsync(user, model.Password);
 
             if (result.Succeeded)
@@ -90,7 +97,7 @@ namespace NexusReader.Api.Controllers
             var user = await _userManager.FindByEmailAsync(model.Email);
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
             {
-                return Ok(new { Message = "Login successful" });
+                return Ok(new { Message = "Login successful", FirstName = user.FirstName });
             }
             return Unauthorized("Invalid login attempt.");
         }
