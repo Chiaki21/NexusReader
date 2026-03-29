@@ -180,11 +180,7 @@ namespace NexusReader.Services
             }
         }
 
-        private async Task ClearPersistedSessionAsync()
-        {
-            await _js.InvokeVoidAsync("localStorage.removeItem", LocalKey);
-            await _js.InvokeVoidAsync("sessionStorage.removeItem", SessionKey);
-        }
+        
 
         private void NotifyStateChanged() => OnAuthStateChanged?.Invoke();
 
